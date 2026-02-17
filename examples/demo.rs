@@ -1,0 +1,69 @@
+use std::{
+    thread::{self, sleep},
+    time::Duration,
+};
+
+use rotation_logger::{FileSize, Logger, MessageFormatter, Settings};
+
+/// "{timestamp}{splitter}{modules}{splitter}{message}"
+/// :<length_limit>:<width>:<valign>
+/// "{timestamp:_:60:left}{splitter}{modules}{splitter}{message}"
+fn main() {
+    let formatter = MessageFormatter::new(
+        "::",
+        "{timestamp:-6:30:right}{splitter}{modules}{splitter}{message}",
+        "%Y-%m-%d %H:%M:%S.%f",
+    );
+
+    println!("{formatter:?}");
+
+    let settings = Settings::new(
+        true,
+        "./".into(),
+        10,
+        FileSize::from_megabytes(5),
+        "new_logger".into(),
+        "log".into(),
+        formatter,
+    );
+
+    let logger = Logger::new(settings);
+    let joiner = logger.run_async();
+
+    let logger_logger_01 = logger.clone();
+    let logger_logger_02 = logger.clone();
+    let _ = thread::spawn(move || {
+        logger_logger_01.log(&vec!["THREAD1".into(), "MAIN".into()], "Starting...");
+
+        let mut counter = 0;
+        loop {
+            logger_logger_01.log(
+                &vec!["THREAD1".into(), "WORKER".into()],
+                format!("Processing Job: {counter}").as_str(),
+            );
+            counter += 1;
+            sleep(Duration::from_secs(1));
+        }
+    });
+
+    let _ = thread::spawn(move || {
+        logger_logger_02.log(&vec!["THREAD2".into(), "MAIN".into()], "Starting...");
+
+        let mut counter = 0;
+        loop {
+            logger_logger_02.log(
+                &vec!["THREAD2".into(), "WORKER".into()],
+                format!("Processing Job: {counter}").as_str(),
+            );
+            counter += 2;
+            sleep(Duration::from_millis(400));
+        }
+    });
+
+    match joiner {
+        Some(j) => {
+            let _ = j.join();
+        }
+        None => {}
+    };
+}
