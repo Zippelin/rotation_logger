@@ -47,14 +47,14 @@ This is simple async rotation Logger lib. It can be safely used across threads b
     );
     ```
 
-- No we can create Log Setting.
+- Now we can create Log Setting.
   First flag with `true` mean we have enabled logger. We also can choose disabled logger and all log method will be still supported but all inner work will skipped.
 
     ```rust
     let settings = Settings::new(true, 5, output, formatter);
     ```
 
-- Creating new Logger instance. We can safely `.clone() `instance to pass it in other threads.
+- Creating new Logger instance. We can safely `.clone()` instance to pass it in other threads.
 
     ```rust
     let logger = Logger::new(settings);
