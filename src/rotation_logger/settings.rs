@@ -58,7 +58,7 @@ pub struct Settings {
     /// Output direction to store logs
     output: OutputChannel,
     /// Accumulating buffer size.
-    /// Buffer actually is a Vec<String>::len window, which will be accumulated before flushing into file.
+    /// Buffer actually is a `Vec<String>::len` window, which will be accumulated before flushing into file.
     buffer_size: usize,
 }
 
