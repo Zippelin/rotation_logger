@@ -1,5 +1,5 @@
 [package]
-name = "rotation_logger"
+name = "rotation-logger"
 version = "0.1.0"
 edition = "2024"
 authors = ["Zippelin"]
@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/Zippelin/rotation_logger"
 documentation = "https://docs.rs/rotation_logger" 
 readme = "readme.md"
-keywords = ["log", "logging", "logger", "log rotation", "async log"]
+keywords = ["log", "logging", "logger", "log-rotation", "async-log"]
 categories = ["development-tools", "development-tools::debugging"]
 
 [dependencies]
