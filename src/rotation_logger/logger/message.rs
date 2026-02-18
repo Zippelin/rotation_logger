@@ -1,3 +1,4 @@
+/// Message that must be shared across logger senders.
 pub struct Message {
     modules: Vec<String>,
     text: String,

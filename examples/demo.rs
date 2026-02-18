@@ -3,29 +3,24 @@ use std::{
     time::Duration,
 };
 
-use rotation_logger::{FileSize, Logger, MessageFormatter, Settings};
+use rotation_logger::{FileSize, Logger, LogsOutput, MessageFormatter, Settings};
 
-/// "{timestamp}{splitter}{modules}{splitter}{message}"
-/// :<length_limit>:<width>:<valign>
-/// "{timestamp:_:60:left}{splitter}{modules}{splitter}{message}"
 fn main() {
     let formatter = MessageFormatter::new(
         "::",
-        "{timestamp:-6:30:right}{splitter}{modules}{splitter}{message}",
+        "{timestamp:-6:30:right}{splitter}{modules:_:_:left}{splitter}{message}",
         "%Y-%m-%d %H:%M:%S.%f",
     );
 
-    println!("{formatter:?}");
-
-    let settings = Settings::new(
-        true,
-        "./".into(),
+    let output = LogsOutput::file(
+        "./logs".into(),
         10,
-        FileSize::from_megabytes(5),
+        FileSize::from_kilobytes(1),
         "new_logger".into(),
         "log".into(),
-        formatter,
     );
+
+    let settings = Settings::new(true, 5, output, formatter);
 
     let logger = Logger::new(settings);
     let joiner = logger.run_async();

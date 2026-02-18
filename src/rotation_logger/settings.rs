@@ -1,38 +1,79 @@
+//! # Settings and support data for `Logger` setup.
+//!
+//! `Logs Formatter` support five `Mask Types`(mask_type) you can operate with:
+//! - timestamp: represent timestamp of logged data. Time will be taken when logged message received by logger, so it not 100% accurate when event occurred.
+//! - splitter: represent splitter symbol which will separate every `Mask`
+//! - modules: list of modules that was source of log data
+//! - message: log message it self
+//!
+//! Each `Mask Type` except `splitter` accept format syntax after `:` char:
+//! `{<mask_type:<mask_length>_<mask_width>_<mask_align>>}`
+//! - mask_length: length of string. On positive value limit string length from begin, on negative value from end.
+//! - mask_width: width of column for this Mask Type.
+//! - mask_align: vertical align for text on this column. Possible values: left, center, right.
+//!
+//! # Example:
+//!
+//! ```
+//! MessageFormatter::new(
+//!     "::",
+//!     "{timestamp:-6:30:right}{splitter}{modules:_:_:left}{splitter}{message}",
+//!     "%Y-%m-%d %H:%M:%S.%f",
+//! );
+//!
+//! ```
+//!
+//! `Logs Output` supported options: file, console, auto
+//! - file: all logs data will be store to logs file with declared settings.
+//! - console: output to console
+//! - auto: will use console when in develop mode and file on release.
+//!
+//! # Example:
+//!
+//! ```
+//! LogsOutput::file(
+//!     "./".into(),
+//!     10,
+//!     FileSize::from_megabytes(5),
+//!     "new_logger".into(),
+//!     "log".into(),
+//! );
+//! ```
+//!
 use std::{cmp::min, path::PathBuf};
 
 use chrono::Local;
 
 use crate::rotation_logger::logger::Message;
 
+/// Settings for data format and output of `Logger`.
+/// All Settings must be set before `Logger` start and cant be changed during work.
+/// `Enabled` or `Disabled` `Logger` can be used to log data, but in case of `Disabled Logger` nothing will happen.
 #[derive(Debug, Clone)]
 pub struct Settings {
+    /// Setting initial Logger Type
     is_enabled: bool,
-    path: PathBuf,
-    capacity: usize,
-    file_size: FileSize,
-    filename: String,
-    file_extension: String,
+    /// Format for output logging string
     formatter: MessageFormatter,
+    /// Output direction to store logs
+    output: LogsOutput,
+    /// Accumulating buffer size.
+    /// Buffer actually is a Vec<String>::len window, which will be accumulated before flushing into file.
+    buffer_size: usize,
 }
 
 impl Settings {
     pub fn new(
         is_enabled: bool,
-        path: PathBuf,
-        capacity: usize,
-        file_size: FileSize,
-        filename: String,
-        file_extension: String,
+        buffer_size: usize,
+        output: LogsOutput,
         formatter: MessageFormatter,
     ) -> Self {
         Self {
             is_enabled,
-            path,
-            capacity,
-            file_size,
-            filename,
-            file_extension,
+            output,
             formatter,
+            buffer_size,
         }
     }
 
@@ -40,8 +81,16 @@ impl Settings {
         self.formatter.format(message)
     }
 
+    pub fn buffer_size(&self) -> usize {
+        self.buffer_size
+    }
+
     pub fn is_enabled(&self) -> bool {
         self.is_enabled
+    }
+
+    pub fn output(&self) -> &LogsOutput {
+        &self.output
     }
 }
 
@@ -49,16 +98,16 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             is_enabled: true,
-            path: PathBuf::from("./"),
-            capacity: 10,
-            file_size: Default::default(),
-            filename: "logger".into(),
-            file_extension: "log".into(),
+            output: Default::default(),
             formatter: Default::default(),
+            buffer_size: 2048,
         }
     }
 }
 
+/// File Size wrapper for easier declaration
+/// Store bits size.
+/// Inner data stored as Bits value.
 #[derive(Debug, Clone)]
 pub struct FileSize {
     size: usize,
@@ -69,19 +118,19 @@ impl FileSize {
         Self { size: bytes * 8 }
     }
 
-    pub fn from_kilobytes(bytes: usize) -> Self {
+    pub fn from_kilobytes(kilobytes: usize) -> Self {
         Self {
-            size: bytes * 8 * 1000,
+            size: kilobytes * 8 * 1000,
         }
     }
-    pub fn from_megabytes(bytes: usize) -> Self {
+    pub fn from_megabytes(megabytes: usize) -> Self {
         Self {
-            size: bytes * 8 * 1000 * 1000,
+            size: megabytes * 8 * 1000 * 1000,
         }
     }
-    pub fn from_gigabytes(bytes: usize) -> Self {
+    pub fn from_gigabytes(gigabytes: usize) -> Self {
         Self {
-            size: bytes * 8 * 1000 * 1000 * 1000,
+            size: gigabytes * 8 * 1000 * 1000 * 1000,
         }
     }
 }
@@ -92,11 +141,21 @@ impl Default for FileSize {
     }
 }
 
+impl PartialEq<u64> for FileSize {
+    fn eq(&self, other: &u64) -> bool {
+        *other == self.size as u64
+    }
+}
+
+/// Formatted for Log Message.
 #[derive(Debug, Clone)]
 pub struct MessageFormatter {
+    /// Timestamp format.
+    /// Support Chrono timestamp formats.
     timestamp: String,
-    format: String,
+    /// List of parsed Mask with set format values.
     _masks: Vec<FormatMask>,
+    /// SPlitter symbols
     splitter: String,
 }
 
@@ -105,7 +164,6 @@ impl Default for MessageFormatter {
         let format = "{timestamp} {splitter} {modules} {splitter} {message}";
         Self {
             timestamp: "%Y-%m-%d %H:%M:%S.%f".to_string(),
-            format: format.to_string(),
             splitter: "::".into(),
             _masks: Self::_set_masks(format),
         }
@@ -116,12 +174,12 @@ impl MessageFormatter {
     pub fn new(splitter: &str, format: &str, timestamp: &str) -> Self {
         Self {
             timestamp: timestamp.into(),
-            format: format.into(),
             splitter: splitter.into(),
             _masks: Self::_set_masks(format),
         }
     }
 
+    /// Process input message with rules.
     pub fn format(&self, message: &Message) -> String {
         let mut result = "".to_string();
 
@@ -179,12 +237,12 @@ impl MessageFormatter {
 
         let free_space = width - value.len();
         let (left_space, right_space) = match align {
-            TextAlign::Left => (" ".repeat(1), " ".repeat(free_space - 1)),
+            TextAlign::Left => ("".to_string(), " ".repeat(free_space)),
             TextAlign::Center => {
                 let half = (free_space / 2) as usize;
                 (" ".repeat(half), " ".repeat(free_space - half))
             }
-            TextAlign::Right => (" ".repeat(free_space - 1), " ".repeat(1)),
+            TextAlign::Right => (" ".repeat(free_space), "".to_string()),
         };
         format!("{left_space}{value}{right_space}")
     }
@@ -221,6 +279,7 @@ impl MessageFormatter {
     }
 }
 
+/// Format Mask with rules.
 #[derive(Debug, Clone)]
 struct FormatMask {
     mask_type: MaskType,
@@ -260,6 +319,7 @@ impl From<&str> for FormatMask {
     }
 }
 
+/// Type of Format Masks
 #[derive(Debug, Clone)]
 enum MaskType {
     Raw(String),
@@ -285,6 +345,7 @@ impl From<&str> for MaskType {
     }
 }
 
+/// Text horizontal align.
 #[derive(Debug, Clone)]
 enum TextAlign {
     Left,
@@ -302,6 +363,110 @@ impl From<&str> for TextAlign {
             Self::Center
         } else {
             Self::Center
+        }
+    }
+}
+
+/// Outputs to save Logs data.
+#[derive(Debug, Clone)]
+pub enum LogsOutput {
+    /// Store to files.
+    File(FileSettings),
+    /// Output to stdout.
+    Console,
+    /// If dev mode -> stdout, If release -> file
+    Auto(FileSettings),
+}
+
+impl Default for LogsOutput {
+    fn default() -> Self {
+        Self::Console
+    }
+}
+
+impl LogsOutput {
+    pub fn console() -> Self {
+        Self::Console
+    }
+    pub fn auto() -> Self {
+        Self::Console
+    }
+    pub fn file(
+        path: PathBuf,
+        capacity: usize,
+        file_size: FileSize,
+        filename: String,
+        file_extension: String,
+    ) -> Self {
+        Self::File(FileSettings::new(
+            path,
+            capacity,
+            file_size,
+            filename,
+            file_extension,
+        ))
+    }
+
+    pub fn settings(&self) -> Option<&FileSettings> {
+        match &self {
+            LogsOutput::File(file_output) => Some(file_output),
+            LogsOutput::Console => None,
+            LogsOutput::Auto(file_output) => Some(file_output),
+        }
+    }
+}
+
+/// Settings for logs files and rotation.
+#[derive(Debug, Clone)]
+pub struct FileSettings {
+    path: PathBuf,
+    capacity: usize,
+    file_size: FileSize,
+    filename: String,
+    file_extension: String,
+}
+
+impl FileSettings {
+    pub fn new(
+        path: PathBuf,
+        capacity: usize,
+        file_size: FileSize,
+        filename: String,
+        file_extension: String,
+    ) -> Self {
+        Self {
+            path,
+            capacity,
+            file_size,
+            filename,
+            file_extension,
+        }
+    }
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+    pub fn filename(&self) -> &String {
+        &self.filename
+    }
+    pub fn file_extension(&self) -> &String {
+        &self.file_extension
+    }
+    pub fn file_size(&self) -> u64 {
+        self.file_size.size as u64
+    }
+    pub fn capacity(&self) -> usize {
+        self.capacity
+    }
+}
+
+impl Default for FileSettings {
+    fn default() -> Self {
+        Self {
+            path: PathBuf::from("./logs"),
+            capacity: 10,
+            file_size: Default::default(),
+            filename: "logger".into(),
+            file_extension: "log".into(),
         }
     }
 }
