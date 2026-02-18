@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use rotation_logger::{FileSize, Logger, LogsOutput, MessageFormatter, Settings};
+use rotation_logger::{FileSize, Logger, MessageFormatter, OutputChannel, Settings, log};
 
 fn main() {
     let formatter = MessageFormatter::new(
@@ -12,7 +12,7 @@ fn main() {
         "%Y-%m-%d %H:%M:%S.%f",
     );
 
-    let output = LogsOutput::file(
+    let output = OutputChannel::file(
         "./logs".into(),
         10,
         FileSize::from_kilobytes(1),
@@ -50,6 +50,34 @@ fn main() {
                 &vec!["THREAD2".into(), "WORKER".into()],
                 format!("Processing Job: {counter}").as_str(),
             );
+            counter += 2;
+            sleep(Duration::from_millis(400));
+        }
+    });
+
+    let _ = thread::spawn(move || {
+        log!("Starting...");
+
+        let mut counter = 0;
+        loop {
+            log!(format!("Try Process Job: {counter}").as_str());
+
+            // Log as text
+            log!(
+                ["THREAD3", "MODULE1"],
+                format!("Try Process Job: {counter}").as_str()
+            );
+            let module_str = "RAW_MODULE";
+            let thread3_str = "THREAD3";
+
+            // Log from vars
+            log!(
+                [thread3_str, module_str],
+                format!("Try Process Job: {counter}").as_str()
+            );
+
+            // Log as ident
+            log!((RAW_MODULE, RAW_MODULE2, RAW_MODULE3), "some");
             counter += 2;
             sleep(Duration::from_millis(400));
         }

@@ -18,6 +18,8 @@ pub use message::Message;
 
 pub static LOG_SENDER: AtomicPtr<Sender<Message>> = AtomicPtr::new(ptr::null_mut());
 
+/// Logger builder based on settings.
+/// Initialize logger from this data structure.
 #[derive(Clone)]
 pub enum Logger {
     Enabled(Settings),

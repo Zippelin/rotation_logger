@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    FileSettings, LogsOutput,
+    FileSettings, OutputChannel,
     rotation_logger::{Settings, logger::Message},
 };
 
@@ -28,9 +28,9 @@ impl EnabledLogger {
     /// Synced runner.
     pub fn run(&self) {
         match self.settings.output() {
-            LogsOutput::File(file_settings) => self.write_to_file(file_settings),
-            LogsOutput::Console => self.write_to_console(),
-            LogsOutput::Auto(file_settings) => {
+            OutputChannel::File(file_settings) => self.write_to_file(file_settings),
+            OutputChannel::Console => self.write_to_console(),
+            OutputChannel::Auto(file_settings) => {
                 if cfg!(debug_assertions) {
                     self.write_to_console()
                 } else {
@@ -111,7 +111,6 @@ impl EnabledLogger {
                             }
                         };
 
-                        println!("filesize: {file_size} ; max: {}", settings.file_size());
                         if file_size >= settings.file_size() {
                             current_file_buffer = None;
 
@@ -148,10 +147,8 @@ impl EnabledLogger {
         match fs::exists(settings.path()) {
             Ok(is_exist) => {
                 if is_exist {
-                    println!("Path Exist");
                     return Ok(());
                 }
-                println!("Path Not Exist");
                 match fs::create_dir(settings.path()) {
                     Ok(_) => return Ok(()),
                     Err(_) => return Err(()),

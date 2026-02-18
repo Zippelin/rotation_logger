@@ -38,7 +38,7 @@ This is simple async rotation Logger lib. It can be safely used across threads b
 - Then you need to decide where to store logs: `file` or `console` or `auto` - leave decision on logger (console on dev mode and file on release version).
 
     ```rust
-    let output = LogsOutput::file(
+    let output = OutputChannel::file(
         "./".into(),
         10,
         FileSize::from_megabytes(5),

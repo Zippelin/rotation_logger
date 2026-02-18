@@ -31,7 +31,7 @@
 //! # Example:
 //!
 //! ```
-//! LogsOutput::file(
+//! OutputChannel::file(
 //!     "./".into(),
 //!     10,
 //!     FileSize::from_megabytes(5),
@@ -56,7 +56,7 @@ pub struct Settings {
     /// Format for output logging string
     formatter: MessageFormatter,
     /// Output direction to store logs
-    output: LogsOutput,
+    output: OutputChannel,
     /// Accumulating buffer size.
     /// Buffer actually is a Vec<String>::len window, which will be accumulated before flushing into file.
     buffer_size: usize,
@@ -66,7 +66,7 @@ impl Settings {
     pub fn new(
         is_enabled: bool,
         buffer_size: usize,
-        output: LogsOutput,
+        output: OutputChannel,
         formatter: MessageFormatter,
     ) -> Self {
         Self {
@@ -89,7 +89,7 @@ impl Settings {
         self.is_enabled
     }
 
-    pub fn output(&self) -> &LogsOutput {
+    pub fn output(&self) -> &OutputChannel {
         &self.output
     }
 }
@@ -367,9 +367,9 @@ impl From<&str> for TextAlign {
     }
 }
 
-/// Outputs to save Logs data.
+/// Output Types for Logger.
 #[derive(Debug, Clone)]
-pub enum LogsOutput {
+pub enum OutputChannel {
     /// Store to files.
     File(FileSettings),
     /// Output to stdout.
@@ -378,13 +378,13 @@ pub enum LogsOutput {
     Auto(FileSettings),
 }
 
-impl Default for LogsOutput {
+impl Default for OutputChannel {
     fn default() -> Self {
         Self::Console
     }
 }
 
-impl LogsOutput {
+impl OutputChannel {
     pub fn console() -> Self {
         Self::Console
     }
@@ -409,9 +409,9 @@ impl LogsOutput {
 
     pub fn settings(&self) -> Option<&FileSettings> {
         match &self {
-            LogsOutput::File(file_output) => Some(file_output),
-            LogsOutput::Console => None,
-            LogsOutput::Auto(file_output) => Some(file_output),
+            OutputChannel::File(file_output) => Some(file_output),
+            OutputChannel::Console => None,
+            OutputChannel::Auto(file_output) => Some(file_output),
         }
     }
 }

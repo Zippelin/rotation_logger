@@ -2,6 +2,14 @@
 name = "rotation_logger"
 version = "0.1.0"
 edition = "2024"
+authors = ["Zippelin"]
+description = "Simple async logger with file rotation"
+license = "MIT OR Apache-2.0" 
+repository = "https://github.com/username/my_library"
+documentation = "https://docs.rs/my_library" 
+readme = "readme.md"
+keywords = ["log", "logging", "logger", "log rotation", "async log"]
+categories = ["development-tools", "development-tools::debugging"]
 
 [dependencies]
 chrono = "0.4.39"
